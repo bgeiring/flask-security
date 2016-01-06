@@ -9,9 +9,6 @@
     :license: MIT, see LICENSE for more details.
 """
 
-import base64
-import hashlib
-import hmac
 import sys
 
 try:
@@ -93,33 +90,12 @@ def logout_user():
     _logout_user()
 
 
-def get_hmac(password):
-    """Returns a Base64 encoded HMAC+SHA512 of the password signed with the salt specified
-    by ``SECURITY_PASSWORD_SALT``.
-
-    :param password: The password to sign
-    """
-    salt = _security.password_salt
-
-    if salt is None:
-        raise RuntimeError(
-            'The configuration value `SECURITY_PASSWORD_SALT` must '
-            'not be None when the value of `SECURITY_PASSWORD_HASH` is '
-            'set to "%s"' % _security.password_hash)
-
-    h = hmac.new(encode_string(salt), encode_string(password), hashlib.sha512)
-    return base64.b64encode(h.digest())
-
-
 def verify_password(password, password_hash):
     """Returns ``True`` if the password matches the supplied hash.
 
     :param password: A plaintext password to verify
     :param password_hash: The expected hash value of the password (usually from your database)
     """
-    if _security.password_hash != 'plaintext':
-        password = get_hmac(password)
-
     return _pwd_context.verify(password, password_hash)
 
 
@@ -130,9 +106,6 @@ def verify_and_update_password(password, user):
     :param password: A plaintext password to verify
     :param user: The user to verify against
     """
-
-    if _pwd_context.identify(user.password) != 'plaintext':
-        password = get_hmac(password)
     verified, new_password = _pwd_context.verify_and_update(password, user.password)
     if verified and new_password:
         user.password = encrypt_password(password)
@@ -145,10 +118,7 @@ def encrypt_password(password):
 
     :param password: The plaintext password to encrypt
     """
-    if _security.password_hash == 'plaintext':
-        return password
-    signed = get_hmac(password).decode('ascii')
-    return _pwd_context.encrypt(signed)
+    return _pwd_context.encrypt(password)
 
 
 def encode_string(string):
