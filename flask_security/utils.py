@@ -10,6 +10,7 @@
 """
 
 import sys
+import hashlib
 
 try:
     from urlparse import urlsplit
